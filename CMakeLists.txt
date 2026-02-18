@@ -31,8 +31,8 @@ endif()
 
 add_library("${PROJECT_NAME}_core" STATIC
   ${HEADER_FILES}
-  core/src/exporter.cpp
   core/src/core.cpp
+  core/src/exporter.cpp
   core/src/tilizer.cpp
   core/src/validator.cpp
 )
