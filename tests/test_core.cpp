@@ -27,8 +27,8 @@ TEST_CASE("Pixel to tile; Tile to pixel") {
   Tile tile = Tile::pixelsToTile(pixels);
   uint8_t outPixels[8][8]{ 0 };
   Tile::tileToPixels(tile, outPixels);
-  for (int y = 0; y < TILE_HEIGHT; ++y) {
-    for (int x = 0; x < TILE_WIDTH; ++x) {
+  for (int y = 0; y < TILE_SIZE; ++y) {
+    for (int x = 0; x < TILE_SIZE; ++x) {
       REQUIRE(outPixels[y][x] == pixels[y][x]);
     }
   }
@@ -38,18 +38,17 @@ TEST_CASE("Tile slicing produces correct number of tiles") {
   Canvas canv;
 
   // Fill top-left 8x8 with RED
-  for (int y = 0; y < TILE_HEIGHT; ++y)
-    for (int x = 0; x < TILE_WIDTH; ++x)
-      canv.pixels[y][x] = clr::DarkRed;
+  for (int y = 0; y < TILE_SIZE; ++y)
+    for (int x = 0; x < TILE_SIZE; ++x)
+      canv.setColorAt(y, x, clr::DarkRed);
 
   auto tileSet = Tilizer::sliceScreen(canv);
-  auto tiles = tileSet.tiles;
 
   // First tile should exist
-  REQUIRE(!tiles.empty());
+  REQUIRE(!tileSet.empty());
 
   // Deduplication: single tile
-  REQUIRE(tiles.size() == 1);
+  REQUIRE(tileSet.size() == 1);
 
   // Tile plane check placeholder
   // REQUIRE(tiles[0].planes[0] == ...);
@@ -59,9 +58,9 @@ TEST_CASE("Attribute table generated correctly") {
   Canvas canv;
   BgPalettes bgp;
   // Fill top-left 16x16 block with RED
-  for (int y = 0; y < 2 * TILE_HEIGHT; ++y)
-    for (int x = 0; x < 2 * TILE_WIDTH; ++x)
-      canv.pixels[y][x] = clr::DarkRed;
+  for (int y = 0; y < 2 * TILE_SIZE; ++y)
+    for (int x = 0; x < 2 * TILE_SIZE; ++x)
+      canv.setColorAt(y, x, clr::DarkRed);
 
   bgp.palettes[0][0] = clr::DarkRed;
   bgp.palettes[0][1] = clr::DarkGreen;
@@ -77,10 +76,38 @@ TEST_CASE("Attribute table generated correctly") {
 TEST_CASE("Tile validation catches >4 colors") {
   Canvas canv;
   BgPalettes bgp;
+  bgp.palettes[0][0] = clr::DarkRed;
+  bgp.palettes[0][1] = clr::DarkGreen;
+  bgp.palettes[0][2] = clr::DarkBlue;
+  bgp.palettes[0][3] = clr::White;
+
   // Fill 8x8 tile with 5 colors
-  for (int y = 0; y < TILE_HEIGHT; ++y)
-    for (int x = 0; x < TILE_WIDTH; ++x)
-      canv.pixels[y][x] = x; // 0..7 colors, simplified
+  for (int y = 0; y < TILE_SIZE; ++y)
+    for (int x = 0; x < TILE_SIZE; ++x)
+      canv.setColorAt(y, x, x); // 0..7 colors, simplified
+
+  auto errors = Validator::validate(canv, bgp);
+
+  REQUIRE(!errors.empty());
+  REQUIRE(errors[0].type == TileError::TooManyColors);
+}
+
+TEST_CASE("Tile validation for invalid palette") {
+  Canvas canv;
+  BgPalettes bgp;
+  bgp.palettes[0][0] = clr::Black;
+  bgp.palettes[0][1] = clr::DarkGreen;
+  bgp.palettes[0][2] = clr::DarkBlue;
+  bgp.palettes[0][3] = clr::DarkRed;
+  bgp.palettes[1][0] = clr::Black;
+  bgp.palettes[1][1] = clr::DarkBrown;
+  bgp.palettes[1][2] = clr::DarkOlive;
+  bgp.palettes[1][3] = clr::White;
+
+  // Fill 8x8 tile with 5 colors
+  for (int y = 0; y < TILE_SIZE; ++y)
+    for (int x = 0; x < TILE_SIZE; ++x)
+      canv.setColorAt(y, x, x); // 0..7 colors, simplified
 
   auto errors = Validator::validate(canv, bgp);
 
@@ -92,14 +119,14 @@ TEST_CASE("Deduplication merges identical tiles") {
   Canvas canv;
 
   // Two identical 8x8 tiles
-  for (int y = 0; y < TILE_HEIGHT; ++y)
-    for (int x = 0; x < TILE_WIDTH; ++x)
-      canv.pixels[y][x] = clr::DarkRed;
+  for (int y = 0; y < TILE_SIZE; ++y)
+    for (int x = 0; x < TILE_SIZE; ++x)
+      canv.setColorAt(y, x, clr::DarkRed);
 
   auto tileSet = Tilizer::sliceScreen(canv);
 
   // Only one unique tile in tileset
-  REQUIRE(tileSet.tiles.size() == 1);
+  REQUIRE(tileSet.size() == 1);
 }
 
 TEST_CASE("CHR, Nametable, and Attribute export produces correct size") {

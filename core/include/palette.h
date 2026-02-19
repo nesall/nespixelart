@@ -85,11 +85,13 @@ namespace core {
 
   } // namespace clr
 
-  struct Color {
-    std::uint8_t c_{};
+  class Color {
+    uint8_t c_{};
+  public:
     constexpr Color() = default;
     constexpr Color(std::uint8_t c) : c_(c) {}
     bool operator ==(const Color &other) const { return c_ == other.c_; }
+    uint8_t index() const { return c_; }
   };
 
   template <std::size_t N>

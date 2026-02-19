@@ -3,6 +3,7 @@
 #include "palette.h"
 
 #include <cstdint>
+#include <unordered_map>
 #include <array>
 #include <vector>
 
@@ -29,8 +30,7 @@ PALETTES (4 background palettes)
 
 namespace core {
 
-  constexpr int TILE_WIDTH = 8;
-  constexpr int TILE_HEIGHT = 8;
+  constexpr int TILE_SIZE = 8;
   constexpr int TILE_SIZE_BYTES = 16; // NES 2bpp format
   //constexpr int TILE_SIZE_PIXELS = TILE_WIDTH * TILE_HEIGHT;
   //constexpr int TILE_SIZE_BITS = TILE_SIZE_BYTES * 8;
@@ -50,31 +50,50 @@ namespace core {
   using clri_t = uint8_t; // 0..3 for NES colors
 
   // Raw art
-  struct Canvas {
+  class Canvas {
     const Palette<MASTER_PALETTE_SIZE> palette_ = standardNesPalette();
     // pixels[y][x] = 0..63 (master palette index)
     std::array<std::array<Color, SCREEN_WIDTH>, SCREEN_HEIGHT> pixels{};
+  public:
     void setColorAt(uint8_t row, uint8_t col, Color clr) {
       if (SCREEN_HEIGHT <= row || SCREEN_WIDTH <= col) throw std::out_of_range("Canvas::setColorAt");
-      pixels[row][col] = clr.c_;
+      pixels[row][col] = clr.index();
     }
     Color colorAt(uint8_t row, uint8_t col) const {
       if (SCREEN_HEIGHT <= row || SCREEN_WIDTH <= col) throw std::out_of_range("Canvas::colorAt");
       return pixels[row][col];
     }
+
+    template<int BlockW, int BlockH, typename F>
+    static void forEachBlock(F &&fn) {
+      constexpr int blocksX = SCREEN_WIDTH / BlockW;
+      constexpr int blocksY = SCREEN_HEIGHT / BlockH;
+      for (int by = 0; by < blocksY; ++by) {
+        for (int bx = 0; bx < blocksX; ++bx) {
+          fn(bx, by);
+        }
+      }
+    }
+
   };
 
   struct Tile {
     // NES 8x8 tile = 16 bytes (2bpp planar)
-    std::array<uint8_t, TILE_SIZE_BYTES> planes{};
-    bool operator==(const Tile &other) const { return planes == other.planes; }
+    using Plane = std::array<uint8_t, 8>;
+    Plane plane0{}; // bit 0
+    Plane plane1{}; // bit 1
+    bool operator==(const Tile &other) const { return plane0 == other.plane0 && plane1 == other.plane1; }
     // pixels[y][x] = 0..3 (2-bit color index)
-    static Tile pixelsToTile(const clri_t pixels[TILE_HEIGHT][TILE_WIDTH]);
-    static void tileToPixels(const Tile &tile, uint8_t clri_t[TILE_HEIGHT][TILE_WIDTH]);
+    static Tile pixelsToTile(const clri_t pixels[TILE_SIZE][TILE_SIZE]);
+    static void tileToPixels(const Tile &tile, clri_t pixels[TILE_SIZE][TILE_SIZE]);
   };
 
   struct TileSet {
-    std::vector<Tile> tiles;
+    bool addTile(const Tile &t);
+    size_t size() const { return tiles_.size(); }
+    bool empty() const { return tiles_.empty(); }
+  private:
+    std::vector<Tile> tiles_;
   };
   
   struct BgPalettes {
@@ -124,4 +143,5 @@ namespace core {
     // Helper: convert 8x8 screen block to Tile
     static Tile blockToTile(const Canvas &screen, int tileX, int tileY);
   };
-}
+
+} // namespace core

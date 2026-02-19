@@ -1,32 +1,45 @@
 #include "core.h"
+#include <algorithm>
 
 
-core::Tile core::Tile::pixelsToTile(const clri_t pixels[TILE_HEIGHT][TILE_WIDTH])
+core::Tile core::Tile::pixelsToTile(const clri_t pixels[TILE_SIZE][TILE_SIZE])
 {
   Tile tile{};
-  for (int y = 0; y < TILE_HEIGHT; ++y) {
-    uint8_t plane0 = 0;
-    uint8_t plane1 = 0;
-    for (int x = 0; x < TILE_WIDTH; ++x) {
+  for (int y = 0; y < TILE_SIZE; ++y) {
+    uint8_t p0 = 0;
+    uint8_t p1 = 0;
+    for (int x = 0; x < TILE_SIZE; ++x) {
       uint8_t color = pixels[y][x] & 0x03; // mask 2 bits
-      plane0 |= ((color & 0x01) << (7 - x)); // low bit
-      plane1 |= ((color & 0x02) >> 1) << (7 - x); // high bit
+      p0 |= ((color & 0x01) << (7 - x)); // bit 0
+      p1 |= (((color & 0x02) >> 1) << (7 - x)); // bit 1
     }
-    tile.planes[y] = plane0; // bit 0 plane
-    tile.planes[y + 8] = plane1; // bit 1 plane
+    tile.plane0[y] = p0;
+    tile.plane1[y] = p1;
   }
   return tile;
 }
 
-void core::Tile::tileToPixels(const Tile &tile, clri_t pixels[TILE_HEIGHT][TILE_WIDTH])
+void core::Tile::tileToPixels(const Tile &tile, clri_t pixels[TILE_SIZE][TILE_SIZE])
 {
-  for (int y = 0; y < TILE_HEIGHT; ++y) {
-    uint8_t plane0 = tile.planes[y];
-    uint8_t plane1 = tile.planes[y + 8];
-    for (int x = 0; x < TILE_WIDTH; ++x) {
-      uint8_t bit0 = (plane0 >> (7 - x)) & 1;
-      uint8_t bit1 = (plane1 >> (7 - x)) & 1;
+  for (int y = 0; y < TILE_SIZE; ++y) {
+    uint8_t p0 = tile.plane0[y];
+    uint8_t p1 = tile.plane1[y];
+    for (int x = 0; x < TILE_SIZE; ++x) {
+      uint8_t bit0 = (p0 >> (7 - x)) & 1;
+      uint8_t bit1 = (p1 >> (7 - x)) & 1;
       pixels[y][x] = (bit1 << 1) | bit0;
     }
   }
+}
+
+
+//-------------------------------------------------------------------------------
+
+bool core::TileSet::addTile(const Tile &t)
+{
+  if (std::find(tiles_.begin(), tiles_.end(), t) == tiles_.end()) {
+    tiles_.push_back(t);
+    return true;
+  }
+  return false;
 }
