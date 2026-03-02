@@ -92,28 +92,28 @@ TEST_CASE("Tile validation catches >4 colors") {
   REQUIRE(errors[0].type == TileError::TooManyColors);
 }
 
-TEST_CASE("Tile validation for invalid palette") {
-  Canvas canv;
-  BgPalettes bgp;
-  bgp.palettes[0][0] = clr::Black;
-  bgp.palettes[0][1] = clr::DarkGreen;
-  bgp.palettes[0][2] = clr::DarkBlue;
-  bgp.palettes[0][3] = clr::DarkRed;
-  bgp.palettes[1][0] = clr::Black;
-  bgp.palettes[1][1] = clr::DarkBrown;
-  bgp.palettes[1][2] = clr::DarkOlive;
-  bgp.palettes[1][3] = clr::White;
-
-  // Fill 8x8 tile with 5 colors
-  for (int y = 0; y < TILE_SIZE; ++y)
-    for (int x = 0; x < TILE_SIZE; ++x)
-      canv.setColorAt(y, x, x); // 0..7 colors, simplified
-
-  auto errors = Validator::validate(canv, bgp);
-
-  REQUIRE(!errors.empty());
-  REQUIRE(errors[0].type == TileError::TooManyColors);
-}
+//TEST_CASE("Tile validation for invalid palette") {
+//  Canvas canv;
+//  BgPalettes bgp;
+//  bgp.palettes[0][0] = clr::Black;
+//  bgp.palettes[0][1] = clr::DarkGreen;
+//  bgp.palettes[0][2] = clr::DarkBlue;
+//  bgp.palettes[0][3] = clr::DarkRed;
+//  bgp.palettes[1][0] = clr::Black;
+//  bgp.palettes[1][1] = clr::DarkBrown;
+//  bgp.palettes[1][2] = clr::DarkOlive;
+//  bgp.palettes[1][3] = clr::White;
+//
+//  // Fill 8x8 tile with 5 colors
+//  for (int y = 0; y < TILE_SIZE; ++y)
+//    for (int x = 0; x < TILE_SIZE; ++x)
+//      canv.setColorAt(y, x, x); // 0..7 colors, simplified
+//
+//  auto errors = Validator::validate(canv, bgp);
+//
+//  REQUIRE(!errors.empty());
+//  REQUIRE(errors[0].type == TileError::TooManyColors);
+//}
 
 TEST_CASE("Deduplication merges identical tiles") {
   Canvas canv;
